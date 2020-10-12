@@ -1,0 +1,57 @@
+<idea-plugin>
+    <id>com.sjhy.plugin.easycode</id>
+    <name>DaoHelper</name>
+    <vendor email="1353036300@qq.com" url="http://www.shujuhaiyang.com">Easy Code Office Website</vendor>
+
+    <description><![CDATA[
+      <tag>code,code generate,code tools</tag>
+    ]]></description>
+
+
+    <change-notes><![CDATA[
+      <p>1.0-SNAPSHOT</p>
+      <ul>
+        <li>新增基本代码生成功能</li>
+      </ul>
+    ]]></change-notes>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+    <idea-version since-build="171.3780.107"/>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+
+    -->
+    <!--必须为企业版-->
+    <depends>com.intellij.modules.lang</depends>
+    <!--必须依赖Database Tool插件-->
+    <depends>com.intellij.database</depends>
+    <!--必须依赖Velocity插件-->
+    <depends>com.intellij.velocity</depends>
+    <!--java支持扩展-->
+    <depends>com.intellij.modules.java</depends>
+
+    <!--扩展点-->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <!--实例化配置信息服务-->
+        <applicationService serviceImplementation="com.sjhy.plugin.config.Settings"/>
+        <!--项目服务-->
+        <projectService serviceInterface="com.sjhy.plugin.service.TableInfoService" serviceImplementation="com.sjhy.plugin.service.impl.TableInfoServiceImpl"/>
+        <projectService serviceInterface="com.sjhy.plugin.service.CodeGenerateService" serviceImplementation="com.sjhy.plugin.service.impl.CodeGenerateServiceImpl"/>
+        <!--系统设置面板-->
+        <applicationConfigurable dynamic="true" instance="com.sjhy.plugin.ui.MainSetting"/>
+
+        <velocity.globalVariableProvider implementation="com.sjhy.plugin.provider.EasyCodeGlobalVariableProvider"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <group id="con.sjhy.easy.code.action" class="com.sjhy.plugin.actions.MainActionGroup" text="EasyCode" popup="true">
+            <!--生成代码菜单-->
+            <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
+        </group>
+    </actions>
+
+</idea-plugin>
