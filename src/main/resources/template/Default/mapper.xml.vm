@@ -2,8 +2,8 @@
 $!mybatisSupport
 
 ##设置保存名称与保存位置
-$!callback.setFileName($tool.append($!{tableInfo.name}, "Dao.xml"))
-$!callback.setSavePath($tool.append($modulePath, "/src/main/resources/mapper"))
+$!callback.setFileName($tool.append($!{tableInfo.name}, "Mapper.xml"))
+$!callback.setSavePath($tool.append($modulePath, "/src/main/resources/",$tool.packagePath($tableInfo.savePackageName),"/mapper"))
 
 ##拿到主键
 #if(!$tableInfo.pkColumn.isEmpty())
@@ -12,87 +12,730 @@ $!callback.setSavePath($tool.append($modulePath, "/src/main/resources/mapper"))
 
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="$!{tableInfo.savePackageName}.dao.$!{tableInfo.name}Dao">
+<mapper namespace="$!{tableInfo.savePackageName}.mapper.$!{tableInfo.name}Mapper">
 
-    <resultMap type="$!{tableInfo.savePackageName}.entity.$!{tableInfo.name}" id="$!{tableInfo.name}Map">
-#foreach($column in $tableInfo.fullColumn)
-        <result property="$!column.name" column="$!column.obj.name" jdbcType="$!column.ext.jdbcType"/>
-#end
+
+    <!--
+    /**
+     * 代码自动生成，请不要修改，切记！！！
+     */
+    -->
+
+    <resultMap type="$!{tableInfo.savePackageName}.dbo.$!{tableInfo.name}" id="$!{tableInfo.name}Map">
+        #foreach($column in $tableInfo.fullColumn)
+            <result property="$!column.name" column="$!column.obj.name" jdbcType="$!column.ext.jdbcType"/>
+        #end
     </resultMap>
 
-    <!--查询单个-->
-    <select id="queryById" resultMap="$!{tableInfo.name}Map">
-        select
-          #allSqlColumn()
+    <sql id="selectAllPropertiesAsDO">
+    select
+        #allSqlColumn()
+    from $!{tableInfo.obj.parent.name}.$!tableInfo.obj.name
+</sql>
 
-        from $!{tableInfo.obj.parent.name}.$!tableInfo.obj.name
-        where $!pk.obj.name = #{$!pk.name}
+    <sql id="selectByFieldNamesAsDO">
+        select <foreach collection="fieldNames" index="index" item="item"  separator=",">#{item}</foreach> from $!{tableInfo.obj.parent.name}.$!tableInfo.obj.name
+    </sql>
+
+    <sql id="selectAsDO">
+        <choose>
+            <when test="fieldNames==null or fieldNames.length==0">
+                <include refid="selectAllPropertiesAsDO"/>
+            </when>
+            <otherwise>
+                <include refid="selectByFieldNamesAsDO"/>
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="listAll" resultMap="$!{tableInfo.name}Map">
+        <include refid="selectAsDO" /> where is_deleted=0
     </select>
 
-    <!--查询指定行数据-->
-    <select id="queryAllByLimit" resultMap="$!{tableInfo.name}Map">
-        select
-          #allSqlColumn()
-
-        from $!{tableInfo.obj.parent.name}.$!tableInfo.obj.name
-        limit #{offset}, #{limit}
+    <select id="mapAll" resultMap="$!{tableInfo.name}Map">
+        <include refid="selectAsDO" /> where is_deleted=0
     </select>
 
-    <!--通过实体作为筛选条件查询-->
-    <select id="queryAll" resultMap="$!{tableInfo.name}Map">
-        select
-          #allSqlColumn()
-
-        from $!{tableInfo.obj.parent.name}.$!tableInfo.obj.name
-        <where>
-#foreach($column in $tableInfo.fullColumn)
-            <if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
-                and $!column.obj.name = #{$!column.name}
-            </if>
-#end
-        </where>
+    <select id="getById" resultMap="$!{tableInfo.name}Map">
+        <include refid="selectAsDO" /> where id=#{id} and is_deleted=0
     </select>
 
-    <!--新增所有列-->
-    <insert id="insert" keyProperty="$!pk.name" useGeneratedKeys="true">
-        insert into $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}(#foreach($column in $tableInfo.otherColumn)$!column.obj.name#if($velocityHasNext), #end#end)
-        values (#foreach($column in $tableInfo.otherColumn)#{$!{column.name}}#if($velocityHasNext), #end#end)
-    </insert>
+    <select id="listByIds" resultMap="$!{tableInfo.name}Map">
+        <include refid="selectAsDO" /> where is_deleted=0 and id in (<foreach collection="ids" index="index" item="item"  separator=",">#{item}</foreach>)
+    </select>
 
-    <insert id="insertBatch" keyProperty="$!pk.name" useGeneratedKeys="true">
-        insert into $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}(#foreach($column in $tableInfo.otherColumn)$!column.obj.name#if($velocityHasNext), #end#end)
-        values
-        <foreach collection="entities" item="entity" separator=",">
-        (#foreach($column in $tableInfo.otherColumn)#{entity.$!{column.name}}#if($velocityHasNext), #end#end)
-        </foreach>
-    </insert>
+    <select id="mapByIds" resultMap="$!{tableInfo.name}Map">
+        <include refid="selectAsDO" /> where is_deleted=0 and id in (<foreach collection="ids" index="index" item="item"  separator=",">#{item}</foreach>)
+    </select>
 
-    <insert id="insertOrUpdateBatch" keyProperty="$!pk.name" useGeneratedKeys="true">
-        insert into $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}(#foreach($column in $tableInfo.otherColumn)$!column.obj.name#if($velocityHasNext), #end#end)
-        values
-        <foreach collection="entities" item="entity" separator=",">
-            (#foreach($column in $tableInfo.otherColumn)#{entity.$!{column.name}}#if($velocityHasNext), #end#end)
-        </foreach>
-        on duplicate key update
-         #foreach($column in $tableInfo.otherColumn)$!column.obj.name = values($!column.obj.name) #if($velocityHasNext), #end#end
-    </insert>
+    <update id="deleteById">
+    update $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}  set is_deleted=1,gmt_modified=current_timestamp where id=${"#"}{id}
+</update>
 
-    <!--通过主键修改数据-->
-    <update id="update">
-        update $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}
-        <set>
-#foreach($column in $tableInfo.otherColumn)
-            <if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
-                $!column.obj.name = #{$!column.name},
-            </if>
-#end
-        </set>
-        where $!pk.obj.name = #{$!pk.name}
+    <update id="deleteByIds">
+        update $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name} set is_deleted=1,gmt_modified=current_timestamp where id in (<foreach collection="ids" index="index" item="item"  separator=",">#{item}</foreach>)
     </update>
 
-    <!--通过主键删除-->
-    <delete id="deleteById">
-        delete from $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name} where $!pk.obj.name = #{$!pk.name}
-    </delete>
+    <update id="updateNotNullProperties">
+        update $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}
+        <set>
+            #foreach($column in $tableInfo.otherColumn)
+                <if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
+                    $!column.obj.name = #{$!column.name},
+                </if>
+            #end
+            gmt_modified=current_timestamp
+        </set>
+        <where>$!{pk.obj.name} = #{$!pk.name}</where>
+    </update>
 
-</mapper>
+    <update id="updateAllProperties">
+        update $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}
+        <set>
+            #foreach($column in $tableInfo.otherColumn)
+                $!column.obj.name = #{$!column.name},
+            #end
+            gmt_modified=current_timestamp
+        </set>
+        <where>
+            $!pk.obj.name = #{$!pk.name}
+        </where>
+    </update>
+
+
+<insert id="insertAllProperties">
+        <#if dbType == "mysql">
+        <#if primaryKey.autoIncrement == true>
+    <selectKey keyProperty="id" resultType="java.lang.Long" order="AFTER">
+        SELECT LAST_INSERT_ID() as id
+    </selectKey>
+
+        </#if>
+
+        </#if>
+        insert into ${dataBaseName}
+        (
+<#if dbType != "mysql">
+        id,
+        </#if>
+<#if dbType == "mysql">
+<#if primaryKey.autoIncrement == false>
+        id,
+        </#if>
+        </#if>
+<#list businessFields as field>
+            ${field.dataBaseName},
+        </#list>
+        is_deleted,gmt_create,gmt_modified
+        )
+        values
+        (
+<#if dbType != "mysql">
+        ${'#'}{id},
+        </#if>
+<#if dbType == "mysql">
+<#if primaryKey.autoIncrement == false>
+        ${'#'}{id},
+        </#if>
+        </#if>
+<#list businessFields as field>
+        ${'#'}{${field.javaFieldName}},
+        </#list>
+        0,${currentTime},${currentTime}
+        )
+        </insert>
+
+
+<insert id="insertNotNullProperties">
+        <#if dbType == "mysql">
+        <#if primaryKey.autoIncrement == true>
+<selectKey keyProperty="id" resultType="java.lang.Long" order="AFTER">
+    SELECT LAST_INSERT_ID() as id
+</selectKey>
+        </#if>
+        </#if>
+        insert into ${dataBaseName}
+        (
+<#if dbType != "mysql">
+<if test="id!=null">id,</if>
+        </#if>
+<#if dbType == "mysql">
+<#if primaryKey.autoIncrement == false>
+        id,
+        </#if>
+        </#if>
+<#list businessFields as field>
+<if test="${field.javaFieldName}!=null">${field.dataBaseName},</if>
+        </#list>
+        is_deleted,gmt_create,gmt_modified
+        )
+        values
+        (
+<#if dbType != "mysql">
+<if test="id!=null">${'#'}{id},</if>
+        </#if>
+<#if dbType == "mysql">
+<#if primaryKey.autoIncrement == false>
+        ${'#'}{id},
+        </#if>
+        </#if>
+<#list businessFields as field>
+<if test="${field.javaFieldName}!=null">${'#'}{${field.javaFieldName}},</if>
+        </#list>
+        0,${currentTime},${currentTime}
+        )
+        </insert>
+
+<#if dbType == "mysql">
+<insert id="insertAllPropertiesList">
+insert into ${dataBaseName}
+(
+        <#if primaryKey.autoIncrement == false>
+id,
+        </#if>
+<#list businessFields as field>
+            ${field.dataBaseName},
+        </#list>
+        is_deleted,gmt_create,gmt_modified
+        )
+        values
+<foreach collection="list" item="item" index="index" separator="," >
+(
+        <#if primaryKey.autoIncrement == false>
+${'#'}{id},
+        </#if>
+<#list businessFields as field>
+        ${'#'}{item.${field.javaFieldName}},
+        </#list>
+        0,${currentTime},${currentTime}
+        )
+        </foreach>
+        </insert>
+        </#if>
+
+<#if dbType == "oracle">
+<insert id="insertAllPropertiesList">
+insert into ${dataBaseName}
+(
+id,
+<#list businessFields as field>
+    ${field.dataBaseName},
+</#list>
+        is_deleted,gmt_create,gmt_modified
+        )
+<foreach collection="list" item="item" index="index" separator="union all " >
+select
+${'#'}{item.id},
+<#list businessFields as field>
+${'#'}{item.${field.javaFieldName}},
+</#list>
+        0,${currentTime},${currentTime}
+        from dual
+        </foreach>
+        </insert>
+        </#if>
+
+
+<select id="listByProperty" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0 and ${"$"}{propertyName}=${"#"}{value}
+</select>
+
+<select id="countByProperty" resultType="java.lang.Integer">
+    select count(1) from ${dataBaseName}
+        where is_deleted=0 and ${"$"}{propertyName}=${"#"}{value}
+</select>
+
+<select id="mapByProperty" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0 and ${"$"}{propertyName}=${"#"}{value}
+</select>
+
+
+<update id="updateNotNullFieldsByProperty">
+update ${dataBaseName} set
+<#list businessFields as field>
+<if test="updateDO.${field.javaFieldName} != null">${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}},</if>
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0 and ${"$"}{propertyName}=${"#"}{value}
+        </update>
+
+<update id="updateAllFieldsByProperty">
+update ${dataBaseName} set
+<#list businessFields as field>
+    ${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}},
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0 and ${"$"}{propertyName}=${"#"}{value}
+        </update>
+
+<update id="deleteByProperty">
+    update ${dataBaseName} set
+            is_delete=1,
+            gmt_modified=${currentTime}
+     where is_deleted=0 and ${"$"}{propertyName}=${"#"}{value}
+</update>
+
+<select id="listByProperties" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0
+<foreach collection="propertyNames" item="propertyName" index="index">
+    and  ${"$"}{propertyName}=${"#"}{values.[${"$"}{index}]}
+</foreach>
+</select>
+
+<select id="countByProperties" resultType="java.lang.Integer">
+select count(1) from ${dataBaseName}
+where is_deleted=0
+<foreach collection="propertyNames" item="propertyName" index="index">
+    and ${"$"}{propertyName}=${"#"}{values.[${"$"}{index}]}
+</foreach>
+</select>
+
+<select id="mapByProperties" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0
+<foreach collection="propertyNames" item="propertyName" index="index">
+    and  ${"$"}{propertyName}=${"#"}{values.[${"$"}{index}]}
+</foreach>
+</select>
+
+<update id="updateNotNullFieldsByProperties">
+update ${dataBaseName} set
+<#list businessFields as field>
+<if test="updateDO.${field.javaFieldName} != null">${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}},</if>
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0
+<foreach collection="propertyNames" item="propertyName" index="index">
+and  ${"$"}{propertyName}=${"#"}{values.[${"$"}{index}]}
+</foreach>
+        </update>
+
+<update id="updateAllFieldsByProperties">
+update ${dataBaseName} set
+<#list businessFields as field>
+    ${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}}
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0
+<foreach collection="propertyNames" item="propertyName" index="index">
+and  ${"$"}{propertyName}=${"#"}{values.[${"$"}{index}]}
+</foreach>
+        </update>
+
+<update id="deleteByProperties">
+update ${dataBaseName} set
+is_deleted=1,
+gmt_modified=${currentTime}
+where is_deleted=0
+<foreach collection="propertyNames" item="propertyName" index="index">
+    and  ${"$"}{propertyName}=${"#"}{values.[${"$"}{index}]}
+</foreach>
+</update>
+
+<select id="_listByQueryItems" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0
+<foreach collection="items" item="item" index="index">
+    and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+    <if test="item.type.hasValue">
+        <choose>
+            <when test="item.type.optr=='in' || item.type.optr=='not in'">
+                <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                    ${"#"}{inItem}
+                </foreach>
+            </when>
+            <otherwise>
+                ${"#"}{values.[${"$"}{item.valueKeyName}]}
+            </otherwise>
+        </choose>
+    </if>
+</foreach>
+</select>
+
+<select id="_mapByQueryItems" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0
+<foreach collection="items" item="item" index="index">
+    and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+    <if test="item.type.hasValue">
+        <choose>
+            <when test="item.type.optr=='in' || item.type.optr=='not in'">
+                <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                    ${"#"}{inItem}
+                </foreach>
+            </when>
+            <otherwise>
+                ${"#"}{values.[${"$"}{item.valueKeyName}]}
+            </otherwise>
+        </choose>
+    </if>
+</foreach>
+</select>
+
+<select id="_countByQueryItems" resultType="java.lang.Integer">
+select count(1) from ${dataBaseName}
+where is_deleted=0
+<foreach collection="items" item="item" index="index">
+    and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+    <if test="item.type.hasValue">
+        <choose>
+            <when test="item.type.optr=='in' || item.type.optr=='not in'">
+                <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                    ${"#"}{inItem}
+                </foreach>
+            </when>
+            <otherwise>
+                ${"#"}{values.[${"$"}{item.valueKeyName}]}
+            </otherwise>
+        </choose>
+    </if>
+</foreach>
+</select>
+
+<update id="_updateNotNullFieldsByQueryItems">
+update ${dataBaseName} set
+<#list businessFields as field>
+<if test="updateDO.${field.javaFieldName} != null">${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}},</if>
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0
+<foreach collection="items" item="item" index="index">
+and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+<if test="item.type.hasValue">
+    <choose>
+        <when test="item.type.optr=='in' || item.type.optr=='not in'">
+            <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                ${"#"}{inItem}
+            </foreach>
+        </when>
+        <otherwise>
+            ${"#"}{values.[${"$"}{item.valueKeyName}]}
+        </otherwise>
+    </choose>
+</if>
+</foreach>
+        </update>
+
+<update id="_updateNotAllFieldsByQueryItems">
+update ${dataBaseName} set
+<#list businessFields as field>
+    ${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}}
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0
+<foreach collection="items" item="item" index="index">
+and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+<if test="item.type.hasValue">
+    <choose>
+        <when test="item.type.optr=='in' || item.type.optr=='not in'">
+            <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                ${"#"}{inItem}
+            </foreach>
+        </when>
+        <otherwise>
+            ${"#"}{values.[${"$"}{item.valueKeyName}]}
+        </otherwise>
+    </choose>
+</if>
+</foreach>
+        </update>
+
+<update id="_deleteByQueryItems">
+update ${dataBaseName} set
+is_deleted=1,
+gmt_modified=${currentTime}
+where is_deleted=0
+<foreach collection="items" item="item" index="index">
+    and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+    <if test="item.type.hasValue">
+        <choose>
+            <when test="item.type.optr=='in' || item.type.optr=='not in'">
+                <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                    ${"#"}{inItem}
+                </foreach>
+            </when>
+            <otherwise>
+                ${"#"}{values.[${"$"}{item.valueKeyName}]}
+            </otherwise>
+        </choose>
+    </if>
+</foreach>
+</update>
+
+<#if dbType=="mysql">
+<select id="_listByPageQuery" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0
+<foreach collection="items" item="item" index="index">
+    and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+    <if test="item.type.hasValue">
+        <choose>
+            <when test="item.type.optr=='in' || item.type.optr=='not in'">
+                <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                    ${"#"}{inItem}
+                </foreach>
+            </when>
+            <otherwise>
+                ${"#"}{values.[${"$"}{item.valueKeyName}]}
+            </otherwise>
+        </choose>
+    </if>
+</foreach>
+<if test="pageQuery.sortFieldNameForDatabase!=null">
+    order by ${"$"}{pageQuery.sortFieldNameForDatabase} ${"$"}{pageQuery.sortType}
+</if>
+limit ${"#"}{values.pageOffset},${"#"}{pageQuery.pageSize}
+</select>
+        </#if>
+
+<#if dbType=="oracle">
+<select id="_listByPageQuery" resultType="${packageName}.dbo.${javaClassName}DO">
+select * from (
+<include refid="selectAsDO_rownum" />
+where is_deleted=0
+<foreach collection="items" item="item" index="index">
+    and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+    <if test="item.type.hasValue">
+        <choose>
+            <when test="item.type.optr=='in' || item.type.optr=='not in'">
+                <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                    ${"#"}{inItem}
+                </foreach>
+            </when>
+            <otherwise>
+                ${"#"}{values.[${"$"}{item.valueKeyName}]}
+            </otherwise>
+        </choose>
+    </if>
+</foreach>
+<if test="pageQuery.sortFieldNameForDatabase!=null">
+    order by ${"$"}{pageQuery.sortFieldNameForDatabase} ${"$"}{pageQuery.sortType}
+</if>
+<![CDATA[
+        ) where rn_>${"#"}{values.pageOffset} and rn_<=${"#"}{values.pageOffsetLimit}
+        ]]>
+</select>
+        </#if>
+
+<select id="_countByPageQuery" resultType="java.lang.Integer">
+select count(1) from ${dataBaseName}
+where is_deleted=0
+<foreach collection="items" item="item" index="index">
+    and  ${"$"}{item.fieldName} ${"$"}{item.type.optr}
+    <if test="item.type.hasValue">
+        <choose>
+            <when test="item.type.optr=='in' || item.type.optr=='not in'">
+                <foreach collection="values[item.valueKeyName]" item="inItem" close=")" open="(" separator=",">
+                    ${"#"}{inItem}
+                </foreach>
+            </when>
+            <otherwise>
+                ${"#"}{values.[${"$"}{item.valueKeyName}]}
+            </otherwise>
+        </choose>
+    </if>
+</foreach>
+</select>
+
+
+
+<#list businessFields as field>
+<select id="listBy${field.javaClassName}" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0 and ${field.dataBaseName}=${"#"}{${field.javaFieldName}}
+</select>
+
+<select id="countBy${field.javaClassName}" resultType="java.lang.Integer">
+            select count(1) from ${dataBaseName}
+            where is_deleted=0 and ${field.dataBaseName}=${"#"}{${field.javaFieldName}}
+       </select>
+
+<select id="mapBy${field.javaClassName}" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0 and ${field.dataBaseName}=${"#"}{${field.javaFieldName}}
+</select>
+
+<update id="updateNotNullFieldsBy${field.javaClassName}">
+update ${dataBaseName} set
+<#list businessFields as field>
+<if test="updateDO.${field.javaFieldName} != null">${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}},</if>
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0 and ${field.dataBaseName}=${"#"}{${field.javaFieldName}}
+        </update>
+
+<update id="updateAllFieldsBy${field.javaClassName}">
+update ${dataBaseName} set
+<#list businessFields as field>
+    ${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}},
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0 and ${field.dataBaseName}=${"#"}{${field.javaFieldName}}
+        </update>
+
+<update id="deleteBy${field.javaClassName}">
+            update ${dataBaseName} set
+                    is_deleted=1,
+                    gmt_modified=${currentTime}
+             where is_deleted=0 and ${field.dataBaseName}=${"#"}{${field.javaFieldName}}
+        </update>
+
+
+
+        <!--property in -->
+
+<select id="listByIn${field.javaClassName}" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0 and ${field.dataBaseName} in
+<foreach collection="${field.javaFieldName}List" item="inItem" close=")" open="(" separator=",">
+    ${"#"}{inItem}
+</foreach>
+</select>
+
+<select id="countByIn${field.javaClassName}" resultType="java.lang.Integer">
+select count(1) from ${dataBaseName}
+where is_deleted=0 and ${field.dataBaseName} in
+<foreach collection="${field.javaFieldName}List" item="inItem" close=")" open="(" separator=",">
+    ${"#"}{inItem}
+</foreach>
+</select>
+
+<select id="mapByIn${field.javaClassName}" resultType="${packageName}.dbo.${javaClassName}DO">
+<include refid="selectAsDO" />
+where is_deleted=0 and ${field.dataBaseName} in
+<foreach collection="${field.javaFieldName}List" item="inItem" close=")" open="(" separator=",">
+    ${"#"}{inItem}
+</foreach>
+</select>
+
+<update id="updateNotNullFieldsByIn${field.javaClassName}">
+update ${dataBaseName} set
+<#list businessFields as field>
+<if test="updateDO.${field.javaFieldName} != null">${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}},</if>
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0 and ${field.dataBaseName} in
+<foreach collection="${field.javaFieldName}List" item="inItem" close=")" open="(" separator=",">
+${"#"}{inItem}
+</foreach>
+        </update>
+
+<update id="updateAllFieldsByIn${field.javaClassName}">
+update ${dataBaseName} set
+<#list businessFields as field>
+    ${field.dataBaseName}=${'#'}{updateDO.${field.javaFieldName}},
+</#list>
+        gmt_modified=${currentTime}
+        where is_deleted=0 and ${field.dataBaseName} in
+<foreach collection="${field.javaFieldName}List" item="inItem" close=")" open="(" separator=",">
+${"#"}{inItem}
+</foreach>
+        </update>
+
+<update id="deleteByIn${field.javaClassName}">
+update ${dataBaseName} set
+is_deleted=1,
+gmt_modified=${currentTime}
+where is_deleted=0 and ${field.dataBaseName} in
+<foreach collection="${field.javaFieldName}List" item="inItem" close=")" open="(" separator=",">
+    ${"#"}{inItem}
+</foreach>
+</update>
+        </#list>
+
+
+
+
+
+
+
+
+
+
+
+
+<resultMap type="$!{tableInfo.savePackageName}.entity.$!{tableInfo.name}" id="$!{tableInfo.name}Map">
+    #foreach($column in $tableInfo.fullColumn)
+    <result property="$!column.name" column="$!column.obj.name" jdbcType="$!column.ext.jdbcType"/>
+    #end
+</resultMap>
+
+        <!--查询单个-->
+<select id="queryById" resultMap="$!{tableInfo.name}Map">
+    select
+      #allSqlColumn()
+
+    from $!{tableInfo.obj.parent.name}.$!tableInfo.obj.name
+    where $!pk.obj.name = #{$!pk.name}
+</select>
+
+        <!--查询指定行数据-->
+<select id="queryAllByLimit" resultMap="$!{tableInfo.name}Map">
+    select
+      #allSqlColumn()
+
+    from $!{tableInfo.obj.parent.name}.$!tableInfo.obj.name
+    limit #{offset}, #{limit}
+</select>
+
+        <!--通过实体作为筛选条件查询-->
+<select id="queryAll" resultMap="$!{tableInfo.name}Map">
+select
+    #allSqlColumn()
+
+from $!{tableInfo.obj.parent.name}.$!tableInfo.obj.name
+<where>
+    #foreach($column in $tableInfo.fullColumn)
+        <if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
+            and $!column.obj.name = #{$!column.name}
+        </if>
+    #end
+</where>
+</select>
+
+        <!--新增所有列-->
+<insert id="insert" keyProperty="$!pk.name" useGeneratedKeys="true">
+    insert into $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}(#foreach($column in $tableInfo.otherColumn)$!column.obj.name#if($velocityHasNext), #end#end)
+    values (#foreach($column in $tableInfo.otherColumn)#{$!{column.name}}#if($velocityHasNext), #end#end)
+</insert>
+
+<insert id="insertBatch" keyProperty="$!pk.name" useGeneratedKeys="true">
+insert into $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}(#foreach($column in $tableInfo.otherColumn)$!column.obj.name#if($velocityHasNext), #end#end)
+values
+<foreach collection="entities" item="entity" separator=",">
+    (#foreach($column in $tableInfo.otherColumn)#{entity.$!{column.name}}#if($velocityHasNext), #end#end)
+</foreach>
+</insert>
+
+<insert id="insertOrUpdateBatch" keyProperty="$!pk.name" useGeneratedKeys="true">
+insert into $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}(#foreach($column in $tableInfo.otherColumn)$!column.obj.name#if($velocityHasNext), #end#end)
+values
+<foreach collection="entities" item="entity" separator=",">
+    (#foreach($column in $tableInfo.otherColumn)#{entity.$!{column.name}}#if($velocityHasNext), #end#end)
+</foreach>
+on duplicate key update
+    #foreach($column in $tableInfo.otherColumn)$!column.obj.name = values($!column.obj.name) #if($velocityHasNext), #end#end
+</insert>
+
+        <!--通过主键修改数据-->
+<update id="update">
+update $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name}
+<set>
+    #foreach($column in $tableInfo.otherColumn)
+        <if test="$!column.name != null#if($column.type.equals("java.lang.String")) and $!column.name != ''#end">
+            $!column.obj.name = #{$!column.name},
+        </if>
+    #end
+</set>
+where $!pk.obj.name = #{$!pk.name}
+</update>
+
+        <!--通过主键删除-->
+<delete id="deleteById">
+    delete from $!{tableInfo.obj.parent.name}.$!{tableInfo.obj.name} where $!pk.obj.name = #{$!pk.name}
+</delete>
+
+        </mapper>

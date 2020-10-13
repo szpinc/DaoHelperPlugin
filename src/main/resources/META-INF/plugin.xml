@@ -36,19 +36,19 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
         <!--实例化配置信息服务-->
-        <applicationService serviceImplementation="com.sjhy.plugin.config.Settings"/>
+        <applicationService serviceImplementation="me.szp.plugin.config.Settings"/>
         <!--项目服务-->
-        <projectService serviceInterface="com.sjhy.plugin.service.TableInfoService" serviceImplementation="com.sjhy.plugin.service.impl.TableInfoServiceImpl"/>
-        <projectService serviceInterface="com.sjhy.plugin.service.CodeGenerateService" serviceImplementation="com.sjhy.plugin.service.impl.CodeGenerateServiceImpl"/>
+        <projectService serviceInterface="me.szp.plugin.service.TableInfoService" serviceImplementation="me.szp.plugin.service.impl.TableInfoServiceImpl"/>
+        <projectService serviceInterface="me.szp.plugin.service.CodeGenerateService" serviceImplementation="me.szp.plugin.service.impl.CodeGenerateServiceImpl"/>
         <!--系统设置面板-->
-        <applicationConfigurable dynamic="true" instance="com.sjhy.plugin.ui.MainSetting"/>
+        <applicationConfigurable dynamic="true" instance="me.szp.plugin.ui.MainSetting" displayName="DaoHelper"/>
 
-        <velocity.globalVariableProvider implementation="com.sjhy.plugin.provider.EasyCodeGlobalVariableProvider"/>
+        <velocity.globalVariableProvider implementation="me.szp.plugin.provider.EasyCodeGlobalVariableProvider"/>
     </extensions>
 
     <actions>
         <!-- Add your actions here -->
-        <group id="con.sjhy.easy.code.action" class="com.sjhy.plugin.actions.MainActionGroup" text="EasyCode" popup="true">
+        <group id="con.sjhy.easy.code.action" class="me.szp.plugin.actions.MainActionGroup" text="DaoHelper" popup="true">
             <!--生成代码菜单-->
             <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
         </group>

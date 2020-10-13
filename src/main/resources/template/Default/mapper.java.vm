@@ -1,0 +1,103 @@
+##定义初始变量
+#set($tableName = $tool.append($tableInfo.name, "Mapper"))
+#set($entityName = $tool.append($tableInfo.name, "DO"))
+
+##设置回调
+$!callback.setFileName($tool.append($tableName, ".java"))
+$!callback.setSavePath($tool.append($tableInfo.savePath, "/mapper"))
+
+
+##拿到主键
+#if(!$tableInfo.pkColumn.isEmpty())
+    #set($pk = $tableInfo.pkColumn.get(0))
+#end
+
+#if($tableInfo.savePackageName)package $!{tableInfo.savePackageName}.#{end}mapper;
+
+$!autoImport
+import com.hyzs.gz.common.dao.mapper.CommonMapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.MapKey;
+
+import $!{tableInfo.savePackageName}.dbo.$entityName;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.springframework.util.CollectionUtils;
+
+/**
+ * $!{tableInfo.comment}($!{tableInfo.name})表数据库访问层
+ *
+ * @author $!author
+ * @since $!time.currTime()
+ */
+@Mapper
+interface $!{tableName} extends CommonMapper<$entityName,$pk.shortType> {
+#foreach($column in $tableInfo.fullColumn)
+        /**
+         * 根据$!{column.comment}查询数据
+         */
+        List<$entityName> listBy$!{tool.firstUpperCase($column.name)} (@Param("$!{tool.firstLowerCase($column.name)}") $column.shortType $!{tool.firstLowerCase($column.name)},@Param("fieldNames") String[] fieldNames);
+
+/**
+ * 根据$!{column.comment}分组查询数据
+ */
+@MapKey("id")
+    Map<$pk.shortType,$entityName> mapBy$!{tool.firstUpperCase($column.name)} (@Param("$!{tool.firstLowerCase($column.name)}") $column.shortType $!{tool.firstLowerCase($column.name)});
+
+        Integer countBy$!{tool.firstUpperCase($column.name)} (@Param("$!{tool.firstLowerCase($column.name)}") ${column.shortType} $!{tool.firstLowerCase($column.name)});
+
+        Integer updateNotNullFieldsBy$!{tool.firstUpperCase($column.name)} (@Param("updateDO") $entityName updateDO, @Param("$!{tool.firstLowerCase($column.name)}") $column.shortType $!{tool.firstLowerCase($column.name)});
+
+        Integer updateAllFieldsBy$!{tool.firstUpperCase($column.name)} (@Param("updateDO") $entityName updateDO, @Param("$!{tool.firstLowerCase($column.name)}") $column.shortType $!{tool.firstLowerCase($column.name)});
+
+        Integer deleteBy$!{tool.firstUpperCase($column.name)} ( @Param("$!{tool.firstLowerCase($column.name)}") $column.shortType $!{tool.firstLowerCase($column.name)});
+
+        List<$entityName> listByIn$!{tool.firstUpperCase($column.name)} (@Param("$!{tool.firstLowerCase($column.name)}List") Collection<$column.shortType> $!{tool.firstLowerCase($column.name)}List,@Param("fieldNames") String[] fieldNames);
+
+@MapKey("id")
+    Map<$pk.shortType,$entityName> mapByIn$!{tool.firstUpperCase($column.name)} (@Param("$!{tool.firstLowerCase($column.name)}List") Collection<$column.shortType> $!{tool.firstLowerCase($column.name)}List,@Param("fieldNames") String[] fieldNames);
+
+        Integer countByIn$!{tool.firstUpperCase($column.name)} (@Param("$!{tool.firstLowerCase($column.name)}List") Collection<$column.shortType> $!{tool.firstLowerCase($column.name)}List);
+
+        Integer updateNotNullFieldsByIn$!{tool.firstUpperCase($column.name)} (@Param("updateDO") $entityName updateDO, @Param("$!{tool.firstLowerCase($column.name)}List") Collection<$column.shortType> $!{tool.firstLowerCase($column.name)}List);
+
+        Integer updateAllFieldsByIn$!{tool.firstUpperCase($column.name)} (@Param("updateDO") $entityName updateDO, @Param("$!{tool.firstLowerCase($column.name)}List") Collection<$column.shortType> $!{tool.firstLowerCase($column.name)}List);
+
+        Integer deleteByIn$!{tool.firstUpperCase($column.name)} ( @Param("$!{tool.firstLowerCase($column.name)}List") Collection<$column.shortType> $!{tool.firstLowerCase($column.name)}List);
+
+default $entityName singleResultBy$!{tool.firstUpperCase($column.name)} (${column.shortType} $!{tool.firstLowerCase($column.name)},String[] fieldNames){
+        List<$entityName> list=this.listBy$!{tool.firstUpperCase($column.name)} ($!{tool.firstLowerCase($column.name)},fieldNames);
+        return CollectionUtils.isEmpty(list)?null:list.get(0);
+        }
+
+default <T> Map<T,List<$entityName>> groupingBy$!{tool.firstUpperCase($column.name)} (${column.shortType} $!{tool.firstLowerCase($column.name)}, Function<$entityName, T> mapper, String[] fieldNames){
+        List<$entityName> list=this.listBy$!{tool.firstUpperCase($column.name)} ($!{tool.firstLowerCase($column.name)},fieldNames);
+        if(CollectionUtils.isEmpty(list)){
+        return Collections.emptyMap();
+        }
+        return list.stream().collect(Collectors.groupingBy(mapper));
+        }
+
+default $entityName singleResultByIn$!{tool.firstUpperCase($column.name)} (Collection<$column.shortType> $!{tool.firstLowerCase($column.name)}List,String[] fieldNames){
+        List<$entityName> list=this.listByIn$!{tool.firstUpperCase($column.name)} ($!{tool.firstLowerCase($column.name)}List,fieldNames);
+        return CollectionUtils.isEmpty(list)?null:list.get(0);
+        }
+
+default <T> Map<T,List<$entityName>> groupingByIn$!{tool.firstUpperCase($column.name)} (Collection<$column.shortType> $!{tool.firstLowerCase($column.name)}List, Function<$entityName, T> mapper, String[] fieldNames){
+        List<$entityName> list=this.listByIn$!{tool.firstUpperCase($column.name)} ($!{tool.firstLowerCase($column.name)}List,fieldNames);
+        if(CollectionUtils.isEmpty(list)){
+        return Collections.emptyMap();
+        }
+        return list.stream().collect(Collectors.groupingBy(mapper));
+        }
+
+#end
+        }
